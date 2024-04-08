@@ -1,0 +1,44 @@
+fetchers:
+  - !Fetcher
+    name: uwufetch_base
+    args:
+    extra_reqs: null
+    path: uwufetch
+    needs_image: False
+
+  - !Fetcher
+    name: uwufetch
+    args:
+    extra_reqs: null
+    path: uwufetch
+    needs_image: True
+
+  - !Fetcher
+    name: hyfetch
+    args:
+      - -m rgb
+      - --c-overlay
+      - -b fastfetch
+    extra_reqs: fastfetch
+    path: hyfetch
+    needs_image: False
+
+  - !Fetcher
+    name: fastfetch
+    args:
+      - --disable-linewrap false
+    path: fastfetch
+
+image_methods:
+  chafa:
+    caller: fastfetch
+    args:
+      - --chafa {} --chafa-color-space RGB --chafa-fg-only False
+  sixel:
+    caller: fastfetch
+    args:
+      - --sixel {} --logo-width 20 --logo-preserve-aspect-ratio True
+  uwu:
+    caller: uwufetch
+    args:
+      - -i {}

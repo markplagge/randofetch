@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling"]
+requires      = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
@@ -10,9 +10,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
 keywords = []
-authors = [
-  { name = "Mark Plagge", email = "mplagge@sandia.gov" },
-]
+authors = [{ name = "Mark Plagge", email = "mplagge@sandia.gov" }]
 classifiers = [
   "Development Status :: 4 - Beta",
   "Programming Language :: Python",
@@ -22,15 +20,12 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
-dependencies = [
-  "click",
-  "appdirs"
-]
+dependencies = ["click", "platformdirs", 'ruamel.yaml', 'tqdm']
 
-[project.urls]
+
 Documentation = "https://github.com/unknown/randofetch#readme"
-Issues = "https://github.com/unknown/randofetch/issues"
-Source = "https://github.com/unknown/randofetch"
+Issues        = "https://github.com/unknown/randofetch/issues"
+Source        = "https://github.com/unknown/randofetch"
 
 [project.scripts]
 randofetch = "randofetch.cli:randofetch"
@@ -39,47 +34,38 @@ randofetch = "randofetch.cli:randofetch"
 path = "src/randofetch/__about__.py"
 
 [tool.hatch.envs.default]
-dependencies = [
-  "coverage[toml]>=6.5",
-  "pytest",
-]
+dependencies = ["coverage[toml]>=6.5", "pytest"]
+
+[tool.hatch.envs.gui]
+features           = ['gui']
+extra-dependencies = ["kivy"]
+[project.optional-dependencies]
+gui = ['kivy']
+
 [tool.hatch.envs.default.scripts]
-test = "pytest {args:tests}"
-test-cov = "coverage run -m pytest {args:tests}"
-cov-report = [
-  "- coverage combine",
-  "coverage report",
-]
-cov = [
-  "test-cov",
-  "cov-report",
-]
+test       = "pytest {args:tests}"
+test-cov   = "coverage run -m pytest {args:tests}"
+cov-report = ["- coverage combine", "coverage report"]
+cov        = ["test-cov", "cov-report"]
+
 
 [[tool.hatch.envs.all.matrix]]
 python = ["3.10", "3.11", "3.12"]
 
 [tool.hatch.envs.types]
-dependencies = [
-  "mypy>=1.0.0",
-]
+dependencies = ["mypy>=1.0.0"]
 [tool.hatch.envs.types.scripts]
 check = "mypy --install-types --non-interactive {args:src/randofetch tests}"
 
 [tool.coverage.run]
 source_pkgs = ["randofetch", "tests"]
-branch = true
-parallel = true
-omit = [
-  "src/randofetch/__about__.py",
-]
+branch      = true
+parallel    = true
+omit        = ["src/randofetch/__about__.py"]
 
 [tool.coverage.paths]
 randofetch = ["src/randofetch", "*/randofetch/src/randofetch"]
-tests = ["tests", "*/randofetch/tests"]
+tests      = ["tests", "*/randofetch/tests"]
 
 [tool.coverage.report]
-exclude_lines = [
-  "no cov",
-  "if __name__ == .__main__.:",
-  "if TYPE_CHECKING:",
-]
+exclude_lines = ["no cov", "if __name__ == .__main__.:", "if TYPE_CHECKING:"]
