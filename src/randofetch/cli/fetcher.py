@@ -1,18 +1,22 @@
-from dataclasses import dataclass
 import logging
-from pathlib import Path
 import os
 import pickle
-import copy
-import tqdm
-import ruamel.yaml
 import random
+import shlex
 import subprocess
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from randofetch.cli.config import BaseConfig
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from dataclasses import dataclass
+from pathlib import Path
+from typing import TypeVar
+
+import ruamel.yaml
+import tqdm
+
+from randofetch.cli.config import BaseConfig
 
 logger = logging.getLogger(__name__)
+Fetchtp = TypeVar("Fetchtp", bound="Fetcher")
 
 
 class Fetcher:
@@ -21,31 +25,41 @@ class Fetcher:
     This class is created once, and stored in a PKL file in the XDG_CONFIG_HOME path.
     """
 
-    name: str = "uwufetch"
-    path: str = "uwufetch"
-    args: str = "-c ~/.config/neofetch/config.conf"
+    # name: str = "uwufetch"
+    # path: str = "uwufetch"
+    # args: str = "-c ~/.config/neofetch/config.conf"
     _args: str | None = None
-    args_iterm: str | None = "-c ~/.config/neofetch/config.conf"
-    extra_reqs: str | None = "s1083807"
-    _cache = None
+    # extra_reqs: str | None = "s1083807"
+    _extra_reqs: str | None = None
     needs_image: bool = False
+    _cache = None
+    #    needs_image: bool = False
     image_args = ""
 
     def __init__(
         self,
-        name,
-        path,
-        args,
+        name: str,
+        path: str,
+        args: str,
         extra_reqs: str | None = None,
+        needs_image: bool = False,
     ):
         self.name = name
         self.path = path
         self.args = args
         self.extra_reqs = extra_reqs
+        self.needs_image = needs_image
+
+    @property
+    def extra_reqs(self):
+        return self._extra_reqs
+
+    @extra_reqs.setter
+    def extra_reqs(self, reqs: str | None):
+        self._extra_reqs = reqs
 
     @property
     def main_args(self):
-
         if self._args is None:
             if self.args is not None:
                 self._args = ""
@@ -71,13 +85,20 @@ class Fetcher:
         match self.extra_reqs:
             case "iterm":
                 return "ITERM" in "\n ".join(list(os.environ.keys()))
+            case _:
+                pass
+
         r = subprocess.run(
             f"which {self.extra_reqs}", capture_output=True, shell=True
         ).returncode
 
-        return r != 127 or r == 0
+        if r == 0:
+            logger.info(
+                f"Fetcher {self.name} ran `which {self.extra_reqs}` and got return code of {r}"
+            )
+        return r != 127
 
-    def run(self, silent=False):
+    def run(self, silent: bool = False):
         return subprocess.run(self.cmd, capture_output=silent, shell=True)
 
     def run_silent(self):
@@ -85,22 +106,22 @@ class Fetcher:
             self._cache = self.run(True).stdout
         return self._cache
 
-        return self.run(silent=True)
-
     @property
     def cmd(self):
-        st = (
-            f"{self.path} {self.image_args if self.image_args else ''} {self.main_args}"
-        )
-        return st
+        st = f"{self.image_args if self.image_args else ''} {self.main_args}"
 
-    @classmethod
-    def clone(cls, other):
+        # need to validate more shellx quote / paths.. I was trying this out too:
+        # s1 = f"{self.path}  " + shlex.quote(st)
+        return f"{self.path}  " + st
+
+    @staticmethod
+    def clone(other: Fetchtp):
         f = Fetcher(
             name=other.name,
             path=other.path,
             args=other.args,
             extra_reqs=other.extra_reqs,
+            needs_image=other.needs_image,
         )
         return f
 
@@ -120,21 +141,25 @@ class ImageMethod:
 
 
 class FetcherSet:
-    fetchers = []
-    timing: list = []
+    _fetchers: list[Fetcher] = []
+    _timing: list[float] = []
+    _max_latency: float = 2.2
 
     def __init__(
         self,
         reset: bool,
         save_file: Path,
-        fetcher_list: list | None = None,
+        fetcher_list: list[Fetcher] | None = None,
         max_time: float = 1.1,
     ):
-        self.max_latency = max_time
+        super().__init__()  # Why does my linter complain if I don't call this?
+        self._mutable_fetchers: list[Fetcher] = []
+        self.max_latency: float = max_time
+        self.timing: list[tuple[str, float | bool]] = []
         reset = reset or not (save_file.exists())
         if not reset:
             with open(save_file, "rb") as pf:
-                fetchers = pickle.load(pf)
+                fetchers: list[Fetcher] = pickle.load(pf)
                 self.fetchers = fetchers
         else:
             if fetcher_list is not None:
@@ -142,13 +167,23 @@ class FetcherSet:
                 with open(save_file, "wb") as f:
                     pickle.dump(self.fetchers, f)
             else:
-                raise ValueError(f"If reset need a list of fetchers")
+                raise ValueError("If reset need a list of fetchers")
+
+    @classmethod
+    def _fetcher_list(cls, fl: list[Fetcher]):
+        cls._fetchers = fl
+
+    @property
+    def fetchers(self):
+        return self._fetchers
+
+    @fetchers.setter
+    def fetchers(self, fl: list[Fetcher]):
+        FetcherSet._fetcher_list(fl)
+        self._mutable_fetchers = fl
 
     def init_fetchers(self, fetchers: list[Fetcher]):
-
-        workers = []
-
-        def check_f(fetcher):
+        def check_f(fetcher: Fetcher):
             start = time.perf_counter()
             if fetcher.exists():
                 end = time.perf_counter()
@@ -159,10 +194,11 @@ class FetcherSet:
             else:
                 return False, False
 
-        times = []
+        times: list[tuple[str, float | bool]] = []
         for f in tqdm.tqdm(fetchers):
             res, t = check_f(f)
             print(f)
+            c: str = ""
             if isinstance(res, Fetcher):
                 if t <= self.max_latency:
                     self.fetchers.append(res)
@@ -171,12 +207,12 @@ class FetcherSet:
                     if t <= self.max_latency:
                         self.fetchers.append(res)
                 c = res.cmd
-            else:
-                c = ""
-
-            times.append((c, t))  # type: ignore
+            timing: float | bool = t if isinstance(t, float) else False
+            times.append((c, timing))
 
         self.timing = times
+        # Old threaded mode here.... not really needed...
+        #        workers = []
 
         # with ThreadPoolExecutor(20) as e:
         #     for fetcher in fetchers:
@@ -207,7 +243,9 @@ class FetcherSet:
     def fetcher(self):
         f = self.fetchers[random.randint(0, len(self.fetchers) - 1)]
         if f is None:
-            print("ERRROROROROROROROROR")
+            # Fail silently since this is a startup / shell program
+            # @TODO: Raise an exception, and have the CLI manage error conditions
+            exit(0)
         return f
 
     def run_fetcher(self):
@@ -252,8 +290,18 @@ def init_fetcher_list(base_config: BaseConfig):
                 if im.check_caller(fetcher):
                     for image in base_config.image_list:
                         fx = Fetcher.clone(fetcher)
-                        mags = " ".join(im.args)
-                        fx.image_args = mags.replace("{}", str(image.absolute()))
+                        mags = ""
+                        for m in im.args:
+                            if " " in m:
+                                m = shlex.quote(m)
+                            mags = f"{mags} {m}"
+                            print(mags)
+
+                        # mags = " ".join(im.args)
+                        fx.image_args = mags.replace(
+                            "{}", shlex.quote(str(image.absolute()))
+                        )
+
                         fetchers.append(fx)
         else:
             fetchers.append(fetcher)

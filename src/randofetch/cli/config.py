@@ -1,7 +1,6 @@
-from dataclasses import dataclass
 from pathlib import Path
 from importlib import resources
-from platformdirs import user_config_dir, user_data_dir, user_cache_dir
+from platformdirs import user_config_dir, user_data_dir
 from randofetch import appname, appauthor
 from ruamel.yaml import YAML
 
@@ -47,13 +46,13 @@ class BaseConfig:
             self._base_config_file = Path(
                 str(resources.files("randofetch.config").joinpath("fetchers.yaml"))
             )
-        if reset_config or self.yaml_config_file.exists() == False:
+        if reset_config or not self.yaml_config_file.exists():
             self.yaml_config_file = self._base_config_file
         ils = []
         for glob in self.image_globs:
-            for file in self.app_data_path.glob(glob):
+            for file in self.app_data_path().glob(glob):
                 ils.append(str(file))
-        ils = set(ils)
+        ils = list(set(ils))
         self.image_list = [Path(i) for i in ils]
 
     # States:
@@ -66,23 +65,24 @@ class BaseConfig:
     # Do #1
     @property
     def fetcher_save_path(self):
-        return self.app_data_path / self.fetcher_save_name
+        return self.app_data_path() / self.fetcher_save_name
 
     @property
     def img_cfg_save_path(self):
-        return self.app_data_path / self.image_save_name
+        return self.app_data_path() / self.image_save_name
 
-    def _load_xdg(self, xdgp: Path | str):
+    @staticmethod
+    def _load_xdg(xdgp: Path | str):
         xdgp = Path(xdgp)
         if not xdgp.exists():
             xdgp.mkdir()
         return xdgp
 
-    @property
-    def app_config_path(self):
-        return self._load_xdg(user_config_dir(appname, appauthor=appauthor))
+    @classmethod
+    def app_config_path(cls):
+        return cls._load_xdg(user_config_dir(appname, appauthor=appauthor))
 
-    @property
+    @classmethod
     def app_data_path(self):
         return self._load_xdg(user_data_dir(appname, appauthor))
 
@@ -90,7 +90,7 @@ class BaseConfig:
     def yaml_config_file(self):
         if self._fetcher_config:
             return self._fetcher_config
-        fc = self.app_config_path / "fetchers.yaml"
+        fc = self.app_config_path() / "fetchers.yaml"
         return fc
 
     @yaml_config_file.setter
@@ -120,13 +120,12 @@ class BaseConfig:
 
     @property
     def image_configs(self):
-
         img_ms = self.config["image_methods"]
         return img_ms
 
     @property
     def fset_save_file(self):
-        return self.app_config_path / self.fetcher_save_name
+        return self.app_config_path() / self.fetcher_save_name
 
 
 def load_config(config_location: Path):

@@ -6,12 +6,12 @@ fetchers:
     path: uwufetch
     needs_image: False
 
-  - !Fetcher
-    name: uwufetch
-    args:
-    extra_reqs: null
-    path: uwufetch
-    needs_image: True
+  # - !Fetcher
+  #   name: uwufetch
+  #   args:
+  #   extra_reqs: null
+  #   path: uwufetch
+  #   needs_image: True
 
   - !Fetcher
     name: hyfetch
@@ -28,17 +28,31 @@ fetchers:
     args:
       - --disable-linewrap false
     path: fastfetch
+    needs_image: True
 
 image_methods:
   chafa:
     caller: fastfetch
     args:
-      - --chafa {} --chafa-color-space RGB --chafa-fg-only False
+      - --chafa
+      - {}
+      #- --chafa-color-space RGB
+      #- --chafa-fg-only False
   sixel:
     caller: fastfetch
     args:
-      - --sixel {} --logo-width 20 --logo-preserve-aspect-ratio True
+      - --sixel
+      - {}
+      #- --logo-width 20
+      #- --logo-preserve-aspect-ratio True
+  iterm:
+    caller: fastfetch
+    args:
+      - --iterm
+      - {}
+
   uwu:
     caller: uwufetch
     args:
-      - -i {}
+      - -i
+      - {}
