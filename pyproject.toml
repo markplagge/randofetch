@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
 keywords = []
-authors = [{ name = "Mark Plagge", email = "mplagge@sandia.gov" }]
+authors = [{ name = "Mark Plagge", email = "plaggm@icloud.com" }]
 classifiers = [
   "Development Status :: 4 - Beta",
   "Programming Language :: Python",
@@ -23,9 +23,9 @@ classifiers = [
 dependencies = ["click", "platformdirs", 'ruamel.yaml', 'tqdm']
 
 
-Documentation = "https://github.com/unknown/randofetch#readme"
-Issues        = "https://github.com/unknown/randofetch/issues"
-Source        = "https://github.com/unknown/randofetch"
+Documentation = "https://github.com/mplagge/randofetch#readme"
+Issues        = "https://github.com/mplagge/randofetch/issues"
+Source        = "https://github.com/mplagge/randofetch"
 
 [project.scripts]
 randofetch = "randofetch.cli:randofetch"
@@ -34,7 +34,7 @@ randofetch = "randofetch.cli:randofetch"
 path = "src/randofetch/__about__.py"
 
 [tool.hatch.envs.default]
-dependencies = ["coverage[toml]>=6.5", "pytest"]
+dependencies = ["coverage[toml]>=6.5", "pytest","click","platformdirs","ruamel.yaml","tqdm"]
 
 [tool.hatch.envs.gui]
 features           = ['gui']
