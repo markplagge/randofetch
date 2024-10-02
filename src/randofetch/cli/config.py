@@ -83,15 +83,15 @@ class BaseConfig:
         return cls._load_xdg(user_config_dir(appname, appauthor=appauthor))
 
     @classmethod
-    def app_data_path(self):
-        return self._load_xdg(user_data_dir(appname, appauthor))
+    def app_data_path(cls):
+        return cls._load_xdg(user_data_dir(appname, appauthor))
 
     @property
-    def yaml_config_file(self):
+    def yaml_config_file(self) -> Path:
         if self._fetcher_config:
             return self._fetcher_config
         fc = self.app_config_path() / "fetchers.yaml"
-        return fc
+        return Path(fc)
 
     @yaml_config_file.setter
     def yaml_config_file(self, yaml_file: Path):
@@ -106,6 +106,7 @@ class BaseConfig:
             return self._config_dict
         yaml = YAML()
         cg = yaml.load(self.yaml_config_file)
+
         self._config_dict = cg
         return cg
 
@@ -126,6 +127,25 @@ class BaseConfig:
     @property
     def fset_save_file(self):
         return self.app_config_path() / self.fetcher_save_name
+
+
+def clean_config(config_dict: dict) -> dict:
+    """Cleans the configuration dictionary by splitting any cli flags that have spaces into seperate list entries.
+    Goes through each entry in the config dict. If the value is a list, make sure the values of the list do not have spaces,
+    since that breaks cli args. If the value is a dict, go into that dict and repeat."""
+
+    for k, v in config_dict.items():
+        if isinstance(v, list):
+            new_list = []
+            for list_entry in v:
+                if " " in list_entry:
+                    new_list.extend(list_entry.split())
+                else:
+                    new_list.append(list_entry)
+            config_dict[k] = new_list
+        elif isinstance(v, dict):
+            config_dict[k] = clean_config(v)
+    return clean_config
 
 
 def load_config(config_location: Path):
