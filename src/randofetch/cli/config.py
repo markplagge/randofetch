@@ -30,7 +30,7 @@ class BaseConfig:
         config_path_ovr: Path | None = None,
         base_config_file_ovr: Path | None = None,
         reset_config: bool = False,
-    ):
+    ) -> None:
         """init. Creates a config folder and populates it with:
         1. A copy of the base_config (or base_config_file_ovr if specified)
         Args:
@@ -64,30 +64,65 @@ class BaseConfig:
     # 3. reset config:
     # Do #1
     @property
-    def fetcher_save_path(self):
+    def fetcher_save_path(self) -> Path:
         return self.app_data_path() / self.fetcher_save_name
 
     @property
-    def img_cfg_save_path(self):
+    def img_cfg_save_path(self) -> Path:
         return self.app_data_path() / self.image_save_name
 
     @staticmethod
-    def _load_xdg(xdgp: Path | str):
-        xdgp = Path(xdgp)
+    def _load_xdg(xdgp: Path | str) -> Path:
+        """
+        Loads the XDG directory for the application.
+
+        This method retrieves the XDG directory for the application. The XDG directory is a standard directory for storing application-specific data.
+
+        Args:
+            xdgp (Path | str): The path to the XDG directory. If a string is provided, it will be converted to a Path object.
+
+        Returns:
+            Path: The loaded XDG directory as a Path object.
+        """
+        if isinstance(xdgp, str):
+            xdgp = Path(xdgp)
         if not xdgp.exists():
             xdgp.mkdir()
+
         return xdgp
 
     @classmethod
-    def app_config_path(cls):
+    def app_config_path(cls) -> Path:
+        """
+        Returns the path to the XDG configuration directory for the application.
+
+        This method retrieves the path to the XDG configuration directory for the application. The XDG configuration directory is a standard directory for storing application-specific configuration files.
+
+        Args:
+            cls (class): The class instance that calls this method.
+
+        Returns:
+            Path: The path to the XDG configuration directory for the application.
+        """
         return cls._load_xdg(user_config_dir(appname, appauthor=appauthor))
 
     @classmethod
-    def app_data_path(cls):
+    def app_data_path(cls) -> Path:
         return cls._load_xdg(user_data_dir(appname, appauthor))
 
     @property
     def yaml_config_file(self) -> Path:
+        """
+        Returns the path to the YAML configuration file for the application.
+
+        This method retrieves the path to the YAML configuration file for the application. If a custom configuration path has been specified, it will return that path. Otherwise, it will return the default configuration file path.
+
+        Args:
+            None
+
+        Returns:
+            Path: The path to the YAML configuration file for the application.
+        """
         if self._fetcher_config:
             return self._fetcher_config
         fc = self.app_config_path() / "fetchers.yaml"
@@ -101,17 +136,17 @@ class BaseConfig:
         self._fetcher_config = yam_dest
 
     @property
-    def config(self):
+    def config(self) -> dict:
         if self._config_dict:
             return self._config_dict
         yaml = YAML()
-        cg = yaml.load(self.yaml_config_file)
+        cg: dict = yaml.load(self.yaml_config_file)
 
         self._config_dict = cg
         return cg
 
     @property
-    def config_string(self):
+    def config_string(self) -> str:
         return self.yaml_config_file.read_text()
 
     @property
@@ -125,7 +160,7 @@ class BaseConfig:
         return img_ms
 
     @property
-    def fset_save_file(self):
+    def fset_save_file(self) -> Path:
         return self.app_config_path() / self.fetcher_save_name
 
 
@@ -145,12 +180,13 @@ def clean_config(config_dict: dict) -> dict:
             config_dict[k] = new_list
         elif isinstance(v, dict):
             config_dict[k] = clean_config(v)
-    return clean_config
+    return config_dict
 
 
-def load_config(config_location: Path):
-    """Loads the configuration file for randofetch. This is a YAML file normally stored in"""
-
-
-def t_files():
-    print(resources.files("randofetch.config").joinpath("fetchers.yaml").read_text())
+# def load_config(config_location: Path):
+#    """Loads the configuration file for randofetch. This is a YAML file normally stored in"""
+#
+#
+# def t_files():
+#    print(resources.files("randofetch.config").joinpath("fetchers.yaml").read_text())
+#
