@@ -1,0 +1,1 @@
+#@TODO: I'd like a gui for configuring the randofetch settings

@@ -146,7 +146,6 @@ def reset_fn():
 
 
 def gen():
-    global _config_obj
     fetcher_set = FetcherSet(reset=False, save_file=_config_obj.fset_save_file)
     c = fetcher_set.get_cmd()
     click.echo(c)
@@ -167,25 +166,37 @@ def gen():
 )
 @click.option("--link", "-l", help="Link images instead of copy", default=False)
 def add_images(images: list[Path], link: bool):
-    global _config_obj
+    """add_images Adds images to the configuration folder and configuration file.
+
+
+    :param images: One or more image files - they need to be compatible with your fetcher.
+    :type images: list[Path]
+    :param link: Do we link the images or copy them to the folder?
+    :type link: bool
+    """
 
     def check_img(i: Path):
-        return i.match("*.jpg") or i.match("*.png")
+        return i.match("*.jpg", case_sensitive=False) or i.match(
+            "*.png", case_sensitive=False
+        )
 
-    if not all([check_img(c) for c in images]):
-        click.echo("Need jpg or png images")
-        exit(1)
+    for i, imc in enumerate([check_img(im) for im in images]):
+        if not imc:
+            click.secho("Found non JPG or PNG image: ", fg="red", underline=True)
+            click.secho(f"{images[i]}")
+            click.confirm(
+                "Continue anyway?", default=False, abort=True
+            )  # @TODO  maybe support other image formats?
 
     for i in images:
-        if check_img(i):
-            dest_path = _config_obj.app_data_path / i.name
-            if click.confirm(
-                f"{'Link' if link else 'Copy'} {i} to {dest_path}?", abort=False
-            ):
-                if link:
-                    i.link_to(dest_path)
-                else:
-                    dest_path.write_bytes(i.read_bytes())
+        dest_path = Path(_config_obj.app_data_path()) / i.name
+        if click.confirm(
+            f"{'Link' if link else 'Copy'} {i} to {dest_path}?", abort=False
+        ):
+            if link:
+                i.symlink_to(dest_path)
+            else:
+                dest_path.write_bytes(i.read_bytes())
 
 
 @randofetch.command
@@ -204,10 +215,15 @@ def list_images():
 @randofetch.command
 @click.argument("image_name")
 def remove_image(image_name):
+    """remove_image Removes an image from the application data directory.
+
+    :param image_name: Image name - check `list_images` to see a list of image names.
+    :type image_name: str
+    """
     im_path = Path(_config_obj.app_data_path / image_name)
     click.confirm(f"Delete file {im_path}?", abort=True)
     im_path.unlink()
 
 
 if __name__ == "__main__":
-    randofetch()
+    randofetch()  # pylint: disable=no-value-for-parameter

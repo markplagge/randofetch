@@ -130,6 +130,8 @@ class BaseConfig:
 
     @yaml_config_file.setter
     def yaml_config_file(self, yaml_file: Path):
+        """Sets the yaml configuration file for the app.
+        Saves the config file to the `self.yaml_config_file` location."""
         yam_c = yaml_file.read_text()
         yam_dest = self.yaml_config_file
         yam_dest.write_text(yam_c)
